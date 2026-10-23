@@ -67,8 +67,8 @@ gameConfig game = {
 
 static inline bool tileOccupied(coord const target);
 
-uint16_t framebuffer;
-uint16_t joystick;
+uint16_t* framebuffer = NULL;
+int joystick_fd = -1;
 
 // This function is called on the start of your application
 // Here you can initialize what ever you need for your task
@@ -78,8 +78,8 @@ bool initializeSenseHat()
     char name[256];
     char path[32];
 
-    int framebuffer_fd; // fd = file descriptor
-    int joystick_fd;
+    int framebuffer_fd = -1; // fd = file descriptor
+    int joystick_fd = -1;
 
     struct fb_fix_screeninfo info;
 
@@ -101,7 +101,7 @@ bool initializeSenseHat()
     // Ligger i /dev/input/event_
     for (int i = 0; i < 32; i++) {
         snprintf(path, sizeof path, "/dev/input/event%d", i);
-        int fd = open(path, O_RDWR);
+        int fd = open(path, O_RDONLY | O_NONBLOCK);
         if (fd < 0)
             continue;
         if (ioctl(fd, EVIOCGNAME(sizeof name), name) >= 0 &&
@@ -122,12 +122,17 @@ bool initializeSenseHat()
 //        be closed immediately without invalidating the mapping.
     // mmap(faktisk framebuffer, lengde (8x8 x 16bit), prot?: PROT_WRITE, flags?: MAP_SHARED?, file descriptor, offset?)
 
-    mmap(framebuffer, 8*8*16, PROT_WRITE, MAP_SHARED, framebuffer_fd, 0);
-    mmap(joystick, 64, PROT_READ, MAP_SHARED, joystick_fd, 0);
+    if (joystick_fd == -1 || framebuffer_fd == -1) return false;
 
 
-    close(joystick_fd);
+    mmap(framebuffer, 8*8*sizeof(uint16_t), PROT_READ | PROT_WRITE, MAP_SHARED, NULL, 0);
+
     close(framebuffer_fd);
+
+    if (framebuffer == MAP_FAILED) {
+        framebuffer = NULL;
+        return false;
+    }
 
     return true;
 }
@@ -149,7 +154,11 @@ bool initializeSenseHat()
 // Here you can free up everything that you might have opened/allocated
 void freeSenseHat()
 {
+    // Burde kanskje ha en sjekk her for dersom ting er lukket allerede, unngå double free elnosånt
+    memset(framebuffer, 0, 8*8*sizeof(uint16_t)); // Sett alle lik 0; skru av skjermen.
+    munmap(framebuffer, 8*8*sizeof(uint16_t));
 
+    close(joystick_fd);
 }
 
 // This function should return the key that corresponds to the joystick press
@@ -163,7 +172,7 @@ int readSenseHatJoystick()
     unsigned short key = 0; // Type hentet fra 1.5 Event interface
     // read( les fra, les til denne adressen, les maks så mye)
 
-    while (read(joystick,&event, sizeof(event)) != -1 ) {
+    while (read(joystick_fd,&event, sizeof(event)) != -1 ) {
         if (event.type == EV_KEY && event.value == 1) {
             key = event.code;
         }
@@ -183,10 +192,10 @@ void renderSenseHatMatrix(bool const playfieldChanged)
             for (unsigned int y = 0; y<game.grid.y; y++) {
                 coord const c = {x, y};
                 if (tileOccupied(c)) {
-                    framebuffer[(y*8+x)*2] = 0b11111 111111 00000;
+                    framebuffer[(y*8+x)] = 0b1111111111100000; // Rødgrønn
                     
                 } else {
-                    framebuffer[(y*8+x)*2] = 0;
+                    framebuffer[(y*8+x)] = 0;
 
                 }
             }
