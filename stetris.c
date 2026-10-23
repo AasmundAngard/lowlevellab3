@@ -101,11 +101,14 @@ bool initializeSenseHat()
 
     struct fb_fix_screeninfo info;
 
+    // Sense hat bruker en av 32 frame buffere i /dev/fb_
+    // Let etter RPi-Sense FB (sjekket i terminal)
     for (int i = 0; i < 32; i++) {
         snprintf(path, sizeof path, "/dev/fb%d", i);
         int fd = open(path, O_RDWR);
-        if (fd < 0)
-            continue;
+        if (fd < 0) continue;
+
+        // ioctl ber om spesiell informasjon fra en enhet
         if (ioctl(fd, FBIOGET_FSCREENINFO, &info) == 0 &&
             strcmp(info.id, "RPi-Sense FB") == 0){
                 framebuffer_fd = fd;
@@ -115,7 +118,7 @@ bool initializeSenseHat()
     }
 
     // Identifikasjon for joystick: Raspberry Pi Sense HAT Joystick
-    // Må interacte med Linux event system
+    // Skjer gjennom Linux event system
     // Ligger i /dev/input/event_
     for (int i = 0; i < 32; i++) {
         snprintf(path, sizeof path, "/dev/input/event%d", i);
@@ -138,13 +141,13 @@ bool initializeSenseHat()
     //               void addr[length], size_t length);
 // After the mmap() call has returned, the file descriptor, fd, can
 //        be closed immediately without invalidating the mapping.
-    // faktisk adresse = mmap(ønsket adresse for framebuffer??, lengde (8x8 x 16bit), 
-    // prot?: PROT_WRITE, flags?: MAP_SHARED?, file descriptor, offset?)
+    // faktisk adresse = mmap(ønsket adresse for framebuffer, settes som NULL, lengde (8x8 x 16bit), 
+    // prot: PROT_READ | PROT_WRITE, flags: MAP_SHARED, file descriptor, offset = 0)
 
     if (joystick_fd == -1 || framebuffer_fd == -1) return false;
 
 
-    framebuffer = mmap(framebuffer, 8*8*sizeof(uint16_t), PROT_READ | PROT_WRITE, MAP_SHARED, framebuffer_fd, 0);
+    framebuffer = mmap(NULL, 8*8*sizeof(uint16_t), PROT_READ | PROT_WRITE, MAP_SHARED, framebuffer_fd, 0);
 
     close(framebuffer_fd);
 
