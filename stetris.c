@@ -27,7 +27,7 @@
 // the game logic allocate/deallocate and reset the memory
 
 uint16_t const colors[10] = {0xf78a,0x6dc8,0xdd14,0x3452,0x6dc8,0x3452,0x8a35,0xb337,0x0420,0xb000};
-uint16_t current_color = colors;
+uint16_t* current_color = colors;
 
 typedef struct
 {
@@ -39,9 +39,9 @@ uint16_t next_color(){
     if (current_color < colors+9) {
         current_color++;
     } else {
-        current_color = colors
+        current_color = colors;
     }
-    return current_color
+    return *current_color;
 }
 
 typedef struct
