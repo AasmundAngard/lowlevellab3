@@ -67,6 +67,9 @@ gameConfig game = {
 
 static inline bool tileOccupied(coord const target);
 
+uint16_t framebuffer;
+uint16_t joystick;
+
 // This function is called on the start of your application
 // Here you can initialize what ever you need for your task
 // return false if something fails, else true
@@ -74,6 +77,10 @@ bool initializeSenseHat()
 {
     char name[256];
     char path[32];
+
+    int framebuffer_fd; // fd = file descriptor
+    int joystick_fd;
+
     struct fb_fix_screeninfo info;
 
     for (int i = 0; i < 32; i++) {
@@ -81,16 +88,46 @@ bool initializeSenseHat()
         int fd = open(path, O_RDWR);
         if (fd < 0)
             continue;
-        // if (ioctl(fd, FBIOGET_FSCREENINFO, &info) == 0 &&
-        //     strcmp(info.id, "RPi-Sense FB") == 0)
-        //     return fd;
-        if (ioctl(fd, EVIOCGNAME(sizeof name), name) >= 0) {
-            printf("%s: %s\n", path, name);          /* <-- added */
-            // if (strcmp(name, "Raspberry Pi Sense HAT Joystick") == 0)
-            //     return fd;
-        }
+        if (ioctl(fd, FBIOGET_FSCREENINFO, &info) == 0 &&
+            strcmp(info.id, "RPi-Sense FB") == 0){
+                framebuffer_fd = fd;
+                break;
+            }
         close(fd);
     }
+
+    // Identifikasjon for joystick: Raspberry Pi Sense HAT Joystick
+    // Må interacte med Linux event system
+    // Ligger i /dev/input/event_
+    for (int i = 0; i < 32; i++) {
+        snprintf(path, sizeof path, "/dev/input/event%d", i);
+        int fd = open(path, O_RDWR);
+        if (fd < 0)
+            continue;
+        if (ioctl(fd, EVIOCGNAME(sizeof name), name) >= 0 &&
+            strcmp(name, "Raspberry Pi Sense HAT Joystick") == 0) {
+                joystick_fd = fd;
+                break;
+            }
+            
+        close(fd);
+    }
+
+    // void *mmap(size_t length;
+    //               void addr[length], size_t length, int prot, int flags,
+    //               int fd, off_t offset);
+    // int munmap(size_t length;
+    //               void addr[length], size_t length);
+// After the mmap() call has returned, the file descriptor, fd, can
+//        be closed immediately without invalidating the mapping.
+    // mmap(faktisk framebuffer, lengde (8x8 x 16bit), prot?: PROT_WRITE, flags?: MAP_SHARED?, file descriptor, offset?)
+
+    mmap(framebuffer, 8*8*16, PROT_WRITE, MAP_SHARED, framebuffer_fd, 0);
+    mmap(joystick, 64, PROT_READ, MAP_SHARED, joystick_fd, 0);
+
+
+    close(joystick_fd);
+    close(framebuffer_fd);
 
     return true;
 }
@@ -112,6 +149,7 @@ bool initializeSenseHat()
 // Here you can free up everything that you might have opened/allocated
 void freeSenseHat()
 {
+
 }
 
 // This function should return the key that corresponds to the joystick press
@@ -121,7 +159,17 @@ void freeSenseHat()
 // !!! when nothing was pressed you MUST return 0 !!!
 int readSenseHatJoystick()
 {
-    return 0;
+    struct input_event event;
+    unsigned short key = 0; // Type hentet fra 1.5 Event interface
+    // read( les fra, les til denne adressen, les maks så mye)
+
+    while (read(joystick,&event, sizeof(event)) != -1 ) {
+        if (event.type == EV_KEY && event.value == 1) {
+            key = event.code;
+        }
+        else continue;
+    }
+    return key;
 }
 
 // This function should render the gamefield on the LED matrix. It is called
@@ -135,15 +183,17 @@ void renderSenseHatMatrix(bool const playfieldChanged)
             for (unsigned int y = 0; y<game.grid.y; y++) {
                 coord const c = {x, y};
                 if (tileOccupied(c)) {
-                    // Mal piksel, med en bestemt farge.
+                    framebuffer[(y*8+x)*2] = 0b11111 111111 00000;
                     
                 } else {
-                    // skru av
+                    framebuffer[(y*8+x)*2] = 0;
+
                 }
             }
         }
         // Loop over 8x8 matrise, og oppdater
-        // Bruk tileoccupied() ?
+        // Bruk tileoccupied()
+        // Skriv til framebuffer
     }
 }
 
@@ -539,7 +589,7 @@ int main(int argc, char **argv)
             // reading the inputs from stdin. However, we expect you to read the inputs directly
             // from the input device and not from stdin (you should implement the readSenseHatJoystick
             // method).
-            // key = readKeyboard();
+            key = readKeyboard();
         }
         if (key == KEY_ENTER)
             break;
