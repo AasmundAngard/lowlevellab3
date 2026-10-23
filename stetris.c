@@ -64,6 +64,7 @@ gameConfig game = {
 // return false if something fails, else true
 bool initializeSenseHat()
 {
+    char name[256];
     char path[32];
     struct fb_fix_screeninfo info;
 
