@@ -123,11 +123,14 @@ void renderSenseHatMatrix(bool const playfieldChanged)
 {
     (void)playfieldChanged;
     if (playfieldChanged) {
-        for (int x = 0; x < game.grid.x; x++) {
-            for (int y = 0; y<game.grid.y; y++) {
-                if (tileOccupied(x,y)) {
+        for (unsigned int x = 0; x < game.grid.x; x++) {
+            for (unsigned int y = 0; y<game.grid.y; y++) {
+                coord const c = {x, y};
+                if (tileOccupied(c)) {
                     // Mal piksel, med en bestemt farge.
                     
+                } else {
+                    // skru av
                 }
             }
         }
