@@ -189,8 +189,25 @@ int readSenseHatJoystick()
     struct input_event event;
     unsigned short key = 0; // Type hentet fra 1.5 Event interface
     // read( les fra, les til denne adressen, les maks så mye)
+    int n = 0;
 
-    while (read(joystick_fd,&event, sizeof(event)) != -1 ) {
+    while (n != 0) {
+        //  read(joystick_fd,&event, sizeof(event)) != -1 
+        // Value == 1 betyr trykk, value == 0 betyr release
+        // value == 2 betyr holdes nede.
+        ssize_t n = read(joystick_fd, &event, sizeof(event));
+
+        if (n == sizeof(event)) {
+            fprintf(stderr, "type=%u code=%u value=%d\n",
+                    event.type, event.code, event.value);
+
+            if (event.type == EV_KEY && event.value == 1) {
+                key = event.code;
+            }
+        }
+
+        // I spillet registreres to trykk
+        // Test med sude evtest viste a events med value 1 og value 0
         if (event.type == EV_KEY && event.value == 1) {
             key = event.code;
         }
@@ -210,7 +227,6 @@ void renderSenseHatMatrix(bool const playfieldChanged)
             for (unsigned int y = 0; y<game.grid.y; y++) {
                 coord const c = {x, y};
                 if (tileOccupied(c)) {
-                    coord const c = {x,y};
                     framebuffer[(y*8+x)] = tileColor(c); // Rødgrønn
                     
                 } else {
