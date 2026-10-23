@@ -3,11 +3,17 @@
 #include <unistd.h>
 #include <termios.h>
 #include <sys/select.h>
-#include <linux/input.h>
+#include <linux/input.h> // Definerer typene som brukes her, som KEY_A
 #include <stdbool.h>
 #include <string.h>
 #include <time.h>
 #include <poll.h>
+
+#include <fcntl.h>      // open, O_RDWR, O_RDONLY, O_NONBLOCK
+#include <sys/ioctl.h>  // ioctl
+#include <sys/mman.h>   // mmap, munmap
+#include <linux/fb.h>   // struct fb_fix_screeninfo, FBIOGET_FSCREENINFO
+#include <stdint.h>     // uint16_t
 
 // The game state can be used to detect what happens on the playfield
 #define GAMEOVER 0
@@ -58,6 +64,8 @@ gameConfig game = {
     .rowsPerLevel = 2,
     .initNextGameTick = 50,
 };
+
+static inline bool tileOccupied(coord const target);
 
 // This function is called on the start of your application
 // Here you can initialize what ever you need for your task
