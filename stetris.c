@@ -189,22 +189,10 @@ int readSenseHatJoystick()
     struct input_event event;
     unsigned short key = 0; // Type hentet fra 1.5 Event interface
     // read( les fra, les til denne adressen, les maks så mye)
-    int n = 0;
 
-    while (n != 0) {
-        //  read(joystick_fd,&event, sizeof(event)) != -1 
+    while (read(joystick_fd,&event, sizeof(event)) > 0 ) {
         // Value == 1 betyr trykk, value == 0 betyr release
         // value == 2 betyr holdes nede.
-        ssize_t n = read(joystick_fd, &event, sizeof(event));
-
-        if (n == sizeof(event)) {
-            fprintf(stderr, "type=%u code=%u value=%d\n",
-                    event.type, event.code, event.value);
-
-            if (event.type == EV_KEY && event.value == 1) {
-                key = event.code;
-            }
-        }
 
         // I spillet registreres to trykk
         // Test med sude evtest viste a events med value 1 og value 0
