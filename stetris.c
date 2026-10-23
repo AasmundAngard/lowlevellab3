@@ -9,6 +9,7 @@
 #include <time.h>
 #include <poll.h>
 
+#include <sys/time.h>
 #include <fcntl.h>      // open, O_RDWR, O_RDONLY, O_NONBLOCK
 #include <sys/ioctl.h>  // ioctl
 #include <sys/mman.h>   // mmap, munmap
@@ -68,7 +69,7 @@ gameConfig game = {
 static inline bool tileOccupied(coord const target);
 
 uint16_t* framebuffer = NULL;
-int joystick_fd = -1;
+int joystick_fd = -1; // fd = file descriptor
 
 // This function is called on the start of your application
 // Here you can initialize what ever you need for your task
@@ -78,8 +79,7 @@ bool initializeSenseHat()
     char name[256];
     char path[32];
 
-    int framebuffer_fd = -1; // fd = file descriptor
-    int joystick_fd = -1;
+    int framebuffer_fd = -1; 
 
     struct fb_fix_screeninfo info;
 
@@ -125,7 +125,7 @@ bool initializeSenseHat()
     if (joystick_fd == -1 || framebuffer_fd == -1) return false;
 
 
-    mmap(framebuffer, 8*8*sizeof(uint16_t), PROT_READ | PROT_WRITE, MAP_SHARED, framebuffer_fd, 0);
+    framebuffer = mmap(framebuffer, 8*8*sizeof(uint16_t), PROT_READ | PROT_WRITE, MAP_SHARED, framebuffer_fd, 0);
 
     close(framebuffer_fd);
 
