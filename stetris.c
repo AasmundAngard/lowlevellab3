@@ -138,7 +138,8 @@ bool initializeSenseHat()
     //               void addr[length], size_t length);
 // After the mmap() call has returned, the file descriptor, fd, can
 //        be closed immediately without invalidating the mapping.
-    // mmap(faktisk framebuffer, lengde (8x8 x 16bit), prot?: PROT_WRITE, flags?: MAP_SHARED?, file descriptor, offset?)
+    // faktisk adresse = mmap(ønsket adresse for framebuffer??, lengde (8x8 x 16bit), 
+    // prot?: PROT_WRITE, flags?: MAP_SHARED?, file descriptor, offset?)
 
     if (joystick_fd == -1 || framebuffer_fd == -1) return false;
 
@@ -190,28 +191,18 @@ int readSenseHatJoystick()
     unsigned short key = 0; // Type hentet fra 1.5 Event interface
     // read( les fra, les til denne adressen, les maks så mye)
 
-    // while (read(joystick_fd,&event, sizeof(event)) == sizeof(event)) {
-    //     // Value == 1 betyr trykk, value == 0 betyr release
-    //     // value == 2 betyr holdes nede.
+    while (read(joystick_fd,&event, sizeof(event)) == sizeof(event)) {
+        // Value == 1 betyr trykk, value == 0 betyr release
+        // value == 2 betyr holdes nede.
 
-    //     // I spillet registreres to trykk
-    //     // Test med sude evtest viste a events med value 1 og value 0
-    //     if (event.type == EV_KEY && event.value == 1) {
-    //         key = event.code;
-    //     }
-    //     else continue;
-    // }
-    while (1) {
-    ssize_t n = read(joystick_fd, &event, sizeof(event));
-
-    if (n != sizeof(event)) {
-        break;
+        // I spillet registreres to trykk
+        // Test med sude evtest viste a events med value 1 og value 0
+        if (event.type == EV_KEY && event.value == 1) {
+            key = event.code;
+        }
+        else continue;
     }
 
-    if (event.type == EV_KEY && event.value == 1) {
-        key = event.code;
-    }
-}
     return key;
 }
 
