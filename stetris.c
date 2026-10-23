@@ -64,8 +64,40 @@ gameConfig game = {
 // return false if something fails, else true
 bool initializeSenseHat()
 {
+    char path[32];
+    struct fb_fix_screeninfo info;
+
+    for (int i = 0; i < 32; i++) {
+        snprintf(path, sizeof path, "/dev/fb%d", i);
+        int fd = open(path, O_RDWR);
+        if (fd < 0)
+            continue;
+        // if (ioctl(fd, FBIOGET_FSCREENINFO, &info) == 0 &&
+        //     strcmp(info.id, "RPi-Sense FB") == 0)
+        //     return fd;
+        if (ioctl(fd, EVIOCGNAME(sizeof name), name) >= 0) {
+            printf("%s: %s\n", path, name);          /* <-- added */
+            // if (strcmp(name, "Raspberry Pi Sense HAT Joystick") == 0)
+            //     return fd;
+        }
+        close(fd);
+    }
+
     return true;
 }
+
+// Alt av hardware lagres tilgjengelig i minnet som filer under /dev/...
+
+// Må finne hvilken frame buffer som brukes (av /dev/fb0-fb31)
+
+// ioctl brukes til å querie informasjon fra enheter.
+// Kan brukes til å hente enhetnavn.
+
+// mmap() kan mappe minnet fra f.eks. dev til programminnet, så 
+// endringer i variabler går direkte til framebuffer.
+
+// Skrive til minnet et sted og kopiere med mmap() over? 
+
 
 // This function is called when the application exits
 // Here you can free up everything that you might have opened/allocated
@@ -89,6 +121,18 @@ int readSenseHatJoystick()
 void renderSenseHatMatrix(bool const playfieldChanged)
 {
     (void)playfieldChanged;
+    if (playfieldChanged) {
+        for (int x = 0; x < game.grid.x; x++) {
+            for (int y = 0; y<game.grid.y; y++) {
+                if (tileOccupied(x,y)) {
+                    // Mal piksel, med en bestemt farge.
+                    
+                }
+            }
+        }
+        // Loop over 8x8 matrise, og oppdater
+        // Bruk tileoccupied() ?
+    }
 }
 
 // The game logic uses only the following functions to interact with the playfield.
