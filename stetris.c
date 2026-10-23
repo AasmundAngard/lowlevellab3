@@ -190,7 +190,7 @@ int readSenseHatJoystick()
     unsigned short key = 0; // Type hentet fra 1.5 Event interface
     // read( les fra, les til denne adressen, les maks så mye)
 
-    while (read(joystick_fd,&event, sizeof(event)) > 0 ) {
+    while (read(joystick_fd,&event, sizeof(event)) == sizeof(event)) {
         // Value == 1 betyr trykk, value == 0 betyr release
         // value == 2 betyr holdes nede.
 
