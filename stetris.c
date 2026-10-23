@@ -125,7 +125,7 @@ bool initializeSenseHat()
     if (joystick_fd == -1 || framebuffer_fd == -1) return false;
 
 
-    mmap(framebuffer, 8*8*sizeof(uint16_t), PROT_READ | PROT_WRITE, MAP_SHARED, NULL, 0);
+    mmap(framebuffer, 8*8*sizeof(uint16_t), PROT_READ | PROT_WRITE, MAP_SHARED, framebuffer_fd, 0);
 
     close(framebuffer_fd);
 
