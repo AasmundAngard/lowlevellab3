@@ -25,10 +25,24 @@
 
 // If you extend this structure, either avoid pointers or adjust
 // the game logic allocate/deallocate and reset the memory
+
+uint16_t const colors[10] = {0xf78a,0x6dc8,0xdd14,0x3452,0x6dc8,0x3452,0x8a35,0xb337,0x0420,0xb000};
+uint16_t current_color = colors;
+
 typedef struct
 {
     bool occupied;
+    uint16_t color;
 } tile;
+
+uint16_t next_color(){
+    if (current_color < colors+9) {
+        current_color++;
+    } else {
+        current_color = colors
+    }
+    return current_color
+}
 
 typedef struct
 {
@@ -66,10 +80,14 @@ gameConfig game = {
     .initNextGameTick = 50,
 };
 
+uint16_t tileColor(coord const target);
+
 static inline bool tileOccupied(coord const target);
 
 uint16_t* framebuffer = NULL;
 int joystick_fd = -1; // fd = file descriptor
+
+
 
 // This function is called on the start of your application
 // Here you can initialize what ever you need for your task
@@ -192,7 +210,8 @@ void renderSenseHatMatrix(bool const playfieldChanged)
             for (unsigned int y = 0; y<game.grid.y; y++) {
                 coord const c = {x, y};
                 if (tileOccupied(c)) {
-                    framebuffer[(y*8+x)] = 0b1111111111100000; // Rødgrønn
+                    coord const c = {x,y};
+                    framebuffer[(y*8+x)] = tileColor(c); // Rødgrønn
                     
                 } else {
                     framebuffer[(y*8+x)] = 0;
@@ -210,9 +229,17 @@ void renderSenseHatMatrix(bool const playfieldChanged)
 // if you choose to change the playfield or the tile structure, you might need to
 // adjust this game logic <> playfield interface
 
+uint16_t tileColor(coord const target) {
+    return game.playfield[target.y][target.x].color;
+}
+
 static inline void newTile(coord const target)
 {
     game.playfield[target.y][target.x].occupied = true;
+
+    // MODIFIED:
+
+    game.playfield[target.y][target.x].color = next_color();
 }
 
 static inline void copyTile(coord const to, coord const from)
